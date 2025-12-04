@@ -87,57 +87,54 @@
     const successMsg = document.getElementById("successMsg");
     const errorMsg = document.getElementById("errorMsg");
 
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
-      successMsg.style.display = "none";
-      errorMsg.style.display = "none";
+form.addEventListener("submit", async function (e) {
+  e.preventDefault();
+  successMsg.style.display = "none";
+  errorMsg.style.display = "none";
 
-      const name = document.getElementById("name").value.trim();
-      const otType = (new FormData(form)).get("otType");
-      const eventTitle = document.getElementById("eventField").value;
-      const eventRemark = document.getElementById("eventRemarkField").value;
+  const name = document.getElementById("name").value.trim();
+  const otType = (new FormData(form)).get("otType");
+  const eventTitle = document.getElementById("eventField").value;
+  const eventRemark = document.getElementById("eventRemarkField").value;
 
-      if (!name) {
-        errorMsg.textContent = "請輸入名字。";
-        errorMsg.style.display = "block";
-        return;
-      }
-      if (!otType) {
-        errorMsg.textContent = "請選擇 OT 類型。";
-        errorMsg.style.display = "block";
-        return;
-      }
+  if (!name) {
+    errorMsg.textContent = "請輸入名字。";
+    errorMsg.style.display = "block";
+    return;
+  }
+  if (!otType) {
+    errorMsg.textContent = "請選擇 OT 類型。";
+    errorMsg.style.display = "block";
+    return;
+  }
 
-      const payload = {
-        name,
-        otType,
-        event: eventTitle,
-        remark: eventRemark
-      };
+  const payload = {
+    name,
+    otType,
+    event: eventTitle,
+    remark: eventRemark
+  };
 
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          form.reset();
-          successMsg.style.display = "block";
-        } else {
-          // 就算後台返回錯誤，都提示用戶稍後再試
-          errorMsg.textContent = "提交失敗，請稍後再試。";
-          errorMsg.style.display = "block";
-        }
-      } catch (err) {
-        console.error(err);
-        errorMsg.textContent = "提交時發生錯誤，請檢查網絡。";
-        errorMsg.style.display = "block";
-      }
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      // ❗ 注意：唔要 Content-Type header（避免 preflight）
+      body: JSON.stringify(payload)
     });
+
+    if (res.ok) {
+      form.reset();
+      successMsg.style.display = "block";
+    } else {
+      errorMsg.textContent = "提交失敗，請稍後再試。";
+      errorMsg.style.display = "block";
+    }
+  } catch (err) {
+    console.error(err);
+    errorMsg.textContent = "提交時發生錯誤，請檢查網絡。";
+    errorMsg.style.display = "block";
+  }
+});
   </script>
 </body>
 </html>
