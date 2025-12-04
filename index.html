@@ -24,9 +24,7 @@
     <p id="eventRemark" class="desc">
       請輸入你的名字，並選擇 OT 類型。
       <br />
-      <span id="deadlineText" style="color: red; font-weight: bold;">
-        申請期：
-      </span>
+      <span id="deadlineText" style="color: red; font-weight: bold;"></span>
     </p>
 
     <!-- ✅ 直接 POST 去 Apps Script Web App，完全冇 CORS 問題 -->
@@ -65,63 +63,104 @@
   </div>
 
   <script>
-    // 報名時間設定（香港時間 UTC+8）
-    // ★ 每次新 OT 只需修改 START_TIME / END_TIME 即可
-    const START_TIME = new Date("2025-12-15T10:00:00+08:00"); // 開始接受報名
-    const END_TIME   = new Date("2025-12-16T18:00:00+08:00"); // 截止報名時間
+  // 解析 6_DEC_2025_OT 取得 OT 日期
+  function parseOTDateFromTitle(title) {
+    if (!title) return null;
+    var parts = title.split("_"); // 例如 ["6","DEC","2025","OT"]
+    if (parts.length < 3) return null;
 
-    function formatDateTime(d) {
-      const y = d.getFullYear();
-      const m = d.getMonth() + 1;
-      const day = d.getDate();
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return `${y}/${m}/${day} ${hh}:${mm}`;
-    }
+    var day = parseInt(parts[0], 10);
+    var monthStr = parts[1].toUpperCase();
+    var year = parseInt(parts[2], 10);
 
-    // 由 URL 讀取 ?title= 設定活動名稱（Event）
-    (function () {
-      const params = new URLSearchParams(window.location.search);
-      const defaultTitle = "OT 報名表單";
+    var monthMap = {
+      JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5,
+      JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11
+    };
 
-      const title = params.get("title") || defaultTitle;
+    var month = monthMap[monthStr];
+    if (month === undefined || isNaN(day) || isNaN(year)) return null;
 
-      // 頁面標題
-      const titleEl = document.getElementById("eventTitle");
-      if (titleEl) titleEl.textContent = title;
+    return new Date(year, month, day, 0, 0, 0);
+  }
 
-      // 只在有 title 參數時寫入 event 欄，否則留空
-      const eventValue = params.get("title") || "";
-      const eventField = document.getElementById("eventField");
-      if (eventField) eventField.value = eventValue;
+  // 根據 OT 日期計算開始 / 截止時間
+  function computeDeadline(otDate) {
+    if (!otDate) return { start: null, end: null };
 
-      // 設定紅字 DEADLINE 顯示文字
-      const deadlineSpan = document.getElementById("deadlineText");
-      if (deadlineSpan && START_TIME && END_TIME) {
+    var start = new Date(otDate.getTime());
+    start.setDate(start.getDate() - 3);
+    start.setHours(0, 0, 0, 0);
+
+    var end = new Date(otDate.getTime());
+    end.setDate(end.getDate() - 2);
+    end.setHours(18, 0, 0, 0);
+
+    return { start: start, end: end };
+  }
+
+  function formatDateTime(d) {
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1;
+    var day = d.getDate();
+    var hh = String(d.getHours()).padStart(2, "0");
+    var mm = String(d.getMinutes()).padStart(2, "0");
+    return y + "/" + m + "/" + day + " " + hh + ":" + mm;
+  }
+
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    var defaultTitle = "OT 報名表單";
+    var title = params.get("title") || defaultTitle;
+
+    // 顯示活動標題
+    var titleEl = document.getElementById("eventTitle");
+    if (titleEl) titleEl.textContent = title;
+
+    // 把 event 名傳去後端
+    var eventField = document.getElementById("eventField");
+    if (eventField) eventField.value = title;
+
+    // 由 title (例如 6_DEC_2025_OT) 解析 OT 日期並計算 DEADLINE
+    var otDate = parseOTDateFromTitle(title);
+    var dl = computeDeadline(otDate);
+    window.START_TIME = dl.start;
+    window.END_TIME = dl.end;
+
+    // 顯示紅字 DEADLINE
+    var deadlineSpan = document.getElementById("deadlineText");
+    if (deadlineSpan) {
+      if (window.START_TIME && window.END_TIME) {
         deadlineSpan.textContent =
-          "申請期：" + formatDateTime(START_TIME) + " 至 " + formatDateTime(END_TIME);
+          "申請期：" + formatDateTime(window.START_TIME) + " 至 " + formatDateTime(window.END_TIME);
+      } else {
+        // 如未能解析日期，顯示預設提示
+        deadlineSpan.textContent = "截止報名時間為，早更第二日下午 06:00";
       }
-    })();
-
-    // 提交前檢查是否在申請期內
-    const form = document.getElementById("signupForm");
-    if (form) {
-      form.addEventListener("submit", function (e) {
-        const now = new Date();
-
-        if (START_TIME && now < START_TIME) {
-          e.preventDefault();
-          alert("未開始接受報名。\n開始時間：" + formatDateTime(START_TIME));
-          return;
-        }
-
-        if (END_TIME && now > END_TIME) {
-          e.preventDefault();
-          alert("已截止報名。\n截止時間：" + formatDateTime(END_TIME));
-          return;
-        }
-      });
     }
+  })();
+
+  // 在提交時檢查是否在申請期間
+  document.addEventListener("DOMContentLoaded", function () {
+    var form = document.getElementById("signupForm");
+    if (!form) return;
+
+    form.addEventListener("submit", function (e) {
+      var now = new Date();
+
+      if (window.START_TIME && now < window.START_TIME) {
+        e.preventDefault();
+        alert("未開始接受報名。\n開始時間：" + formatDateTime(window.START_TIME));
+        return;
+      }
+
+      if (window.END_TIME && now > window.END_TIME) {
+        e.preventDefault();
+        alert("已截止報名。\n截止時間：" + formatDateTime(window.END_TIME));
+        return;
+      }
+    });
+  });
   </script>
 </body>
 </html>
