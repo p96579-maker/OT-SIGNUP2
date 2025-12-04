@@ -23,6 +23,10 @@
     <h1 id="eventTitle">OT 報名表單</h1>
     <p id="eventRemark" class="desc">
       請輸入你的名字，並選擇 OT 類型。
+      <br />
+      <span id="deadlineText" style="color: red; font-weight: bold;">
+        申請期：
+      </span>
     </p>
 
     <!-- ✅ 直接 POST 去 Apps Script Web App，完全冇 CORS 問題 -->
@@ -61,21 +65,63 @@
   </div>
 
   <script>
-    // 由 URL 讀取 ?title= / ?remark= 設定活動名稱 + 備註
+    // 報名時間設定（香港時間 UTC+8）
+    // ★ 每次新 OT 只需修改 START_TIME / END_TIME 即可
+    const START_TIME = new Date("2025-12-05T10:00:00+08:00"); // 開始接受報名
+    const END_TIME   = new Date("2025-12-06T18:00:00+08:00"); // 截止報名時間
+
+    function formatDateTime(d) {
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      const day = d.getDate();
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${y}/${m}/${day} ${hh}:${mm}`;
+    }
+
+    // 由 URL 讀取 ?title= 設定活動名稱（Event）
     (function () {
       const params = new URLSearchParams(window.location.search);
       const defaultTitle = "OT 報名表單";
-      const defaultRemark = "請輸入你的名字，並選擇 OT 類型。";
 
       const title = params.get("title") || defaultTitle;
-      const remark = params.get("remark") || defaultRemark;
 
-      document.getElementById("eventTitle").textContent = title;
-      document.getElementById("eventRemark").textContent = remark.replace(/\\n/g, "\n");
+      // 頁面標題
+      const titleEl = document.getElementById("eventTitle");
+      if (titleEl) titleEl.textContent = title;
 
-      document.getElementById("eventField").value = title;
-      document.getElementById("eventRemarkField").value = remark;
+      // 只在有 title 參數時寫入 event 欄，否則留空
+      const eventValue = params.get("title") || "";
+      const eventField = document.getElementById("eventField");
+      if (eventField) eventField.value = eventValue;
+
+      // 設定紅字 DEADLINE 顯示文字
+      const deadlineSpan = document.getElementById("deadlineText");
+      if (deadlineSpan && START_TIME && END_TIME) {
+        deadlineSpan.textContent =
+          "申請期：" + formatDateTime(START_TIME) + " 至 " + formatDateTime(END_TIME);
+      }
     })();
+
+    // 提交前檢查是否在申請期內
+    const form = document.getElementById("signupForm");
+    if (form) {
+      form.addEventListener("submit", function (e) {
+        const now = new Date();
+
+        if (START_TIME && now < START_TIME) {
+          e.preventDefault();
+          alert("未開始接受報名。\n開始時間：" + formatDateTime(START_TIME));
+          return;
+        }
+
+        if (END_TIME && now > END_TIME) {
+          e.preventDefault();
+          alert("已截止報名。\n截止時間：" + formatDateTime(END_TIME));
+          return;
+        }
+      });
+    }
   </script>
 </body>
 </html>
