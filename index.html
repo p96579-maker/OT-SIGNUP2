@@ -16,9 +16,6 @@
     .ot-option input { margin-right: 8px; }
     button[type="submit"] { width: 100%; padding: 10px 0; border-radius: 999px; border: none; font-size: 16px; cursor: pointer; background: #16a34a; color: white; font-weight: 600; }
     button[type="submit"]:hover { background: #15803d; }
-    .success, .error { display: none; margin-top: 16px; padding: 10px 12px; border-radius: 8px; font-size: 14px; }
-    .success { background: #dcfce7; color: #166534; }
-    .error { background: #fee2e2; color: #b91c1c; }
   </style>
 </head>
 <body>
@@ -29,7 +26,12 @@
       只有發起人可以在 Admin 頁面看到名單。
     </p>
 
-    <form id="signupForm">
+    <!-- ✅ 直接 POST 去 Apps Script Web App，完全冇 CORS 問題 -->
+    <form
+      id="signupForm"
+      method="POST"
+      action="https://script.google.com/macros/s/AKfycbzLW7XdtwjYq3bZiB6-PEnQZwd83UREtTCnQJvvr4Uy0LuuzkRnYX1xg2ldx5d1eELKWw/exec"
+    >
       <label for="name">你的名字（必填）：</label>
       <input
         type="text"
@@ -51,19 +53,16 @@
         </div>
       </div>
 
+      <!-- 由 URL 帶入嘅活動名／備註（隱藏欄位，方便後台分組） -->
       <input type="hidden" id="eventField" name="event" value="OT 報名表單" />
       <input type="hidden" id="eventRemarkField" name="remark" value="" />
 
       <button type="submit">送出報名</button>
     </form>
-
-    <div id="successMsg" class="success">已成功送出報名，多謝！🙏</div>
-    <div id="errorMsg" class="error">提交失敗，請稍後再試。</div>
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLW7XdtwjYq3bZiB6-PEnQZwd83UREtTCnQJvvr4Uy0LuuzkRnYX1xg2ldx5d1eELKWw/exec";
-
+    // 由 URL 讀取 ?title= / ?remark= 設定活動名稱 + 備註
     (function () {
       const params = new URLSearchParams(window.location.search);
       const defaultTitle = "OT 報名表單";
@@ -73,59 +72,11 @@
       const remark = params.get("remark") || defaultRemark;
 
       document.getElementById("eventTitle").textContent = title;
-      document.getElementById("eventRemark").textContent = remark.replace(/\n/g, "\n");
+      document.getElementById("eventRemark").textContent = remark.replace(/\\n/g, "\n");
 
       document.getElementById("eventField").value = title;
       document.getElementById("eventRemarkField").value = remark;
     })();
-
-    const form = document.getElementById("signupForm");
-    const successMsg = document.getElementById("successMsg");
-    const errorMsg = document.getElementById("errorMsg");
-
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
-      successMsg.style.display = "none";
-      errorMsg.style.display = "none";
-
-      const name = document.getElementById("name").value.trim();
-      const otType = (new FormData(form)).get("otType");
-      const eventTitle = document.getElementById("eventField").value;
-      const eventRemark = document.getElementById("eventRemarkField").value;
-
-      if (!name) {
-        errorMsg.textContent = "請輸入名字。";
-        errorMsg.style.display = "block";
-        return;
-      }
-      if (!otType) {
-        errorMsg.textContent = "請選擇 OT 類型。";
-        errorMsg.style.display = "block";
-        return;
-      }
-
-      const payload = {
-        name,
-        otType,
-        event: eventTitle,
-        remark: eventRemark
-      };
-
-      try {
-        await fetch(SCRIPT_URL, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify(payload)
-        });
-
-        form.reset();
-        successMsg.style.display = "block";
-      } catch (err) {
-        console.error(err);
-        errorMsg.textContent = "提交時發生錯誤，請檢查網絡。";
-        errorMsg.style.display = "block";
-      }
-    });
   </script>
 </body>
 </html>
