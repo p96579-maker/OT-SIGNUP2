@@ -51,7 +51,6 @@
         </div>
       </div>
 
-      <!-- 由 URL 帶入嘅活動名／備註（隱藏欄位，方便後台分組） -->
       <input type="hidden" id="eventField" name="event" value="OT 報名表單" />
       <input type="hidden" id="eventRemarkField" name="remark" value="" />
 
@@ -63,10 +62,8 @@
   </div>
 
   <script>
-    // 🔧 已設定為你 Apps Script Web App URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLW7XdtwjYq3bZiB6-PEnQZwd83UREtTCnQJvvr4Uy0LuuzkRnYX1xg2ldx5d1eELKWw/exec";
 
-    // 由 URL 讀取 ?title= / ?remark= 設定活動名稱 + 備註
     (function () {
       const params = new URLSearchParams(window.location.search);
       const defaultTitle = "OT 報名表單";
@@ -76,7 +73,7 @@
       const remark = params.get("remark") || defaultRemark;
 
       document.getElementById("eventTitle").textContent = title;
-      document.getElementById("eventRemark").textContent = remark.replace(/\\n/g, "\n");
+      document.getElementById("eventRemark").textContent = remark.replace(/\n/g, "\n");
 
       document.getElementById("eventField").value = title;
       document.getElementById("eventRemarkField").value = remark;
@@ -115,14 +112,12 @@
       };
 
       try {
-        // 用 no-cors：request 會送到 Apps Script，但唔會被 CORS 攔截
         await fetch(SCRIPT_URL, {
           method: "POST",
           mode: "no-cors",
           body: JSON.stringify(payload)
         });
 
-        // 收唔到 response，所以直接當成功
         form.reset();
         successMsg.style.display = "block";
       } catch (err) {
