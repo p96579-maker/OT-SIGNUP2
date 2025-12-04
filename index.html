@@ -29,7 +29,6 @@
       只有發起人可以在 Admin 頁面看到名單。
     </p>
 
-    <!-- TODO: 把 SCRIPT_URL 改做你 Apps Script Web App 個 URL -->
     <form id="signupForm">
       <label for="name">你的名字（必填）：</label>
       <input
@@ -64,7 +63,7 @@
   </div>
 
   <script>
-    // 🔧 TODO: 換成你部署好嘅 Apps Script Web App URL（/exec 結尾）
+    // 🔧 已設定為你 Apps Script Web App URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLW7XdtwjYq3bZiB6-PEnQZwd83UREtTCnQJvvr4Uy0LuuzkRnYX1xg2ldx5d1eELKWw/exec";
 
     // 由 URL 讀取 ?title= / ?remark= 設定活動名稱 + 備註
@@ -87,54 +86,51 @@
     const successMsg = document.getElementById("successMsg");
     const errorMsg = document.getElementById("errorMsg");
 
-form.addEventListener("submit", async function (e) {
-  e.preventDefault();
-  successMsg.style.display = "none";
-  errorMsg.style.display = "none";
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      successMsg.style.display = "none";
+      errorMsg.style.display = "none";
 
-  const name = document.getElementById("name").value.trim();
-  const otType = (new FormData(form)).get("otType");
-  const eventTitle = document.getElementById("eventField").value;
-  const eventRemark = document.getElementById("eventRemarkField").value;
+      const name = document.getElementById("name").value.trim();
+      const otType = (new FormData(form)).get("otType");
+      const eventTitle = document.getElementById("eventField").value;
+      const eventRemark = document.getElementById("eventRemarkField").value;
 
-  if (!name) {
-    errorMsg.textContent = "請輸入名字。";
-    errorMsg.style.display = "block";
-    return;
-  }
-  if (!otType) {
-    errorMsg.textContent = "請選擇 OT 類型。";
-    errorMsg.style.display = "block";
-    return;
-  }
+      if (!name) {
+        errorMsg.textContent = "請輸入名字。";
+        errorMsg.style.display = "block";
+        return;
+      }
+      if (!otType) {
+        errorMsg.textContent = "請選擇 OT 類型。";
+        errorMsg.style.display = "block";
+        return;
+      }
 
-  const payload = {
-    name,
-    otType,
-    event: eventTitle,
-    remark: eventRemark
-  };
+      const payload = {
+        name,
+        otType,
+        event: eventTitle,
+        remark: eventRemark
+      };
 
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      // ❗ 注意：唔要 Content-Type header（避免 preflight）
-      body: JSON.stringify(payload)
+      try {
+        // 用 no-cors：request 會送到 Apps Script，但唔會被 CORS 攔截
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify(payload)
+        });
+
+        // 收唔到 response，所以直接當成功
+        form.reset();
+        successMsg.style.display = "block";
+      } catch (err) {
+        console.error(err);
+        errorMsg.textContent = "提交時發生錯誤，請檢查網絡。";
+        errorMsg.style.display = "block";
+      }
     });
-
-    if (res.ok) {
-      form.reset();
-      successMsg.style.display = "block";
-    } else {
-      errorMsg.textContent = "提交失敗，請稍後再試。";
-      errorMsg.style.display = "block";
-    }
-  } catch (err) {
-    console.error(err);
-    errorMsg.textContent = "提交時發生錯誤，請檢查網絡。";
-    errorMsg.style.display = "block";
-  }
-});
   </script>
 </body>
 </html>
