@@ -65,7 +65,7 @@
     (function () {
       const params = new URLSearchParams(window.location.search);
       const defaultTitle = "OT 報名表單";
-      const defaultRemark = "請輸入你的名字，並選擇 OT 類型。\n只有發起人可以在 Admin 頁面看到名單。";
+      const defaultRemark = "請輸入你的名字，並選擇 OT 類型。";
 
       const title = params.get("title") || defaultTitle;
       const remark = params.get("remark") || defaultRemark;
